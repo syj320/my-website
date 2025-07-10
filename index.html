@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/script.js"></script>
+    <link rel="stylesheet" href="./css/styles.css">
+    <!-- 引入EasyUI CSS -->
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/icon.css">
+    
+    <!-- 引入EasyUI 主JS文件 -->
+    <script type="text/javascript" src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+    
+    <!-- 引入EasyUI 中文语言包（可选） -->
+    <script type="text/javascript" src="https://www.jeasyui.com/easyui/locale/easyui-lang-zh_CN.js"></script>
+</head>
+<style>
+    table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        /* .tabl, th, td {
+            border-bottom: 1px solid #ddd;
+            background-color: rgba(255, 255, 255, 0);
+            padding: 8px;
+            text-align: left;
+            padding-left: 2%;
+        } */
+        th {
+            border-bottom: 1px solid #ddd;
+            background-color: rgba(255, 255, 255, 0);
+            padding: 8px;
+            text-align: left;
+            padding-left: 2%;
+        }
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0);
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .pagination span {
+            margin: 0 10px;
+        }
+        .page-input {
+            width: 40px;
+            text-align: center;
+        }
+        .page-numbers {
+            display: flex;
+            margin: 0 10px;
+        }
+        .page-number {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .page-number.active {
+            color: #007bff;
+        }
+        #noDataMessage {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #666;
+            display: none;
+        }
+        .data-container {
+            display: none; /* 初始隐藏，有数据时显示 */
+        }
+</style>
+<body>
+  <div class="conten">
+    <div class="container">
+        <h4>工程名称</h4>
+        <input id="systemCombo" class="easyui-combobox" style="width:100%;"
+            data-options="
+                valueField: 'pcode',
+                textField: 'pname',
+                prompt: '请选择系统',
+                panelHeight: 'auto',
+                formatter: systemFormatter,
+                onSelect: onSystemSelect
+            ">
+    </div>
+    <div class="container">
+        <h4>观测设施</h4>
+        <input id="systemCombo2" class="easyui-combobox" style="width:100%;"
+            data-options="
+                valueField: 'eid',
+                textField: 'ename',
+                prompt: '请选择设施',
+                panelHeight: 'auto',
+                formatter: systemFormatter2,
+                onSelect: onSystemSelect2
+            ">
+    </div>
+    <div class="container">
+        <h4>监测量</h4>
+        <input id="systemCombo3" class="easyui-combobox" style="width:100%;"
+            data-options="
+                valueField: 'name',
+                textField: 'name',
+                prompt: '请选择',
+                panelHeight: 'auto',
+                formatter: systemFormatter3,
+                onSelect: onSystemSelect3
+            ">
+    </div>
+    <div class="container">
+        <h4>开始时间</h4>
+        <input id="startDate" class="easyui-datetimebox" style="width:100%">
+    </div>
+    <div class="container">
+        <h4>结束时间</h4>
+        <input id="endDate" class="easyui-datetimebox" style="width:100%">
+    </div>
+    <div class="container" style="margin: 3% 0;">
+      <a id="getDatesBtn" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'">查询</a>
+    </div>
+    <div class="tabl" id="dataContainer">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>测量时间</th>
+                    <th id="dynamicHeader">valname</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- 表格内容将通过JavaScript动态生成 -->
+            </tbody>
+        </table>
+        <div id="dataRangeInfo" style="width: 100%;text-align: center;">显示第 1 至 10 条结果，共 100 条</div>
+        <div style="display: flex;flex-wrap: wrap; justify-content: flex-start;">
+            <button id="firstPage" style="width: 13%;border: none;background-color:rgba(255, 255, 255, 0);">首页</button>
+            <button id="prevPage" style="width: 13%;border: none;background-color:rgba(255, 255, 255, 0);">上页</button>
+            <span class="page-numbers" id="pageNumbers"></span>
+            <button id="nextPage" style="width: 13%;border: none;background-color:rgba(255, 255, 255, 0);">下页</button>
+            <button id="lastPage" style="width: 13%;border: none;background-color:rgba(255, 255, 255, 0);">末页</button>
+        </div>
+        
+    </div>
+    <div id="noDataMessage">无数据</div>
+        
+  </div>
+    <script>
+        var value
+        var value2
+        var value3
+        var valpname
+        var valename
+        var valname
+        var wartime
+        var extractedData
+        var vall
+        var warname
+        var wardata
+        var wardatae
+        var wary
+        //
+        var rowsPerPage = 10
+        var currentPage = 1
+        
+        // var dynamicHeader
+        // var tableBody 
+        // var firstPageBtn 
+        // var prevPageBtn 
+        // var nextPageBtn 
+        // var lastPageBtn 
+        // var pageNumbers 
+        // var goToPageInput 
+        var totalPages
+        $(document).ready(function() {
+            fetchUsers();
+            dataContainer.style.display = 'none';
+        });
+        $('#systemCombo').combobox({
+            panelClass: 'combo-panel', // 应用自定义样式
+            // 其他配置...
+        });
+        $('#systemCombo2').combobox({
+            panelClass: 'combo-panel', // 应用自定义样式
+            // 其他配置...
+        });
+        $('#systemCombo3').combobox({
+            panelClass: 'combo-panel', // 应用自定义样式
+            // 其他配置...
+        });
+        
+        function fetchUsers() {
+            $.ajax({
+                type: 'get',
+                url: "http://center.xaland.com.cn:8086/landsvr2012/vueDao/loadProjects.action",
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data);
+                    value=data.content
+                    console.log(value);
+                    
+                    $('#systemCombo').combobox('loadData', value);
+                },
+                error: function() {
+                    $('#systemCombo').combobox('setText', '数据加载失败');
+                }
+            })
+        }
+          // 自定义格式化函数，显示更多信息
+        function systemFormatter(row) {
+            return row.pname + ' (' + row.ptype + ')';
+        }
+          // 自定义格式化函数，显示更多信息
+        function systemFormatter2(row) {
+            return row.ename + ' (' + row.mname + ')';
+        }
+        // 自定义格式化函数，显示更多信息
+        function systemFormatter3(row) {
+            return row.name + ' (' + row.htmlUnit + ')';
+        }
+        
+        // 选择事件处理
+        function onSystemSelect(record) {
+            console.log('选择了系统:', record);
+            valename=null
+            valname=null
+            value2=[]
+            value3=[]
+            valpname=record.pcode
+            // alert('您选择了: ' + record.pname + '\n系统代码: ' + record.pcode);
+            $.ajax({
+                type: 'post',
+                url: "http://center.xaland.com.cn:8086/landsvr2012/operateDao/processDatas.action",
+                data: {
+                    datas: JSON.stringify({"tableName":"表单表","typeName":"站点","actionName":"查询观测设施","pcode":record.pcode,"工程号":record.pcode}),
+                    pcode: record.pcode
+                },
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data);
+                    value2=data.content
+                    $('#systemCombo2').combobox('loadData', value2);
+                },
+                error: function() {
+                    $('#systemCombo2').combobox('setText', '数据加载失败');
+                }
+            })
+        }
+        // 选择事件处理
+        function onSystemSelect2(record) {
+            console.log('选择了:',valpname, record);
+            valname=null
+            value3=[]
+            valename=record.eid
+            // alert('您选择了: ' + record.ename + '\n系统代码: ' + record.eid);
+            $.ajax({
+                type: 'post',
+                url: "http://center.xaland.com.cn:8086/landsvr2012/operateDao/selectMonitorItems.action",
+                data: {
+                    propertyName:'观测数据计算表',
+                    pcode: valpname,
+                    eid: valename
+                },
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data);
+                    value3 = (data.content).reduce((acc, item) => {
+                                  if (item.dataClass === '测值') {
+                                    acc.push(item);
+                                  }
+                                  return acc;
+                                }, []);
+                                console.log('value3',value3);
+                                
+                    $('#systemCombo3').combobox('loadData', value3);
+                },
+                error: function() {
+                    $('#systemCombo3').combobox('setText', '数据加载失败');
+                }
+            })
+        }
+        // 选择事件处理
+        function onSystemSelect3(record) {
+            console.log('选择了:', record);
+            valname=record.name
+            // alert('您选择了: ' + record.name + '\n系统代码: ' + record.dataClass);
+        }
+        //
+        // 按钮点击事件
+            $('#getDatesBtn').click(function() {
+                var startDate = $('#startDate').datetimebox('getValue');
+                var endDate = $('#endDate').datetimebox('getValue');
+                
+                if (!startDate || !endDate) {
+                    $.messager.alert('警告', '请选择开始和结束日期!', 'warning');
+                    return;
+                }
+                
+                // 验证结束日期不能早于开始日期
+                if (new Date(startDate) > new Date(endDate)) {
+                    $.messager.alert('错误', '结束日期不能早于开始日期!', 'error');
+                    return;
+                }
+                
+                // 显示结果
+                $('#startDateResult').text(startDate);
+                $('#endDateResult').text(endDate);
+                
+                // 计算时间差
+                var duration = calculateDuration(startDate, endDate);
+                $('#durationResult').text(duration);
+                
+                $('#result').show();
+                
+                // 可以在这里添加提交到服务器的代码
+                $.ajax({
+                    type: 'post',
+                    url: "http://center.xaland.com.cn:8086/landsvr2012/operateDao/selectMonitorItemDataPage.action",
+                    data: {
+                        datas: JSON.stringify({"addTime":startDate,"endTime":endDate,"start":1,"limit":500000,"wild":0,"dataSource":"实时数据","type":"时段量,状态量,整编数据,日","selectType":"分页查询"}),
+                        propertyName:'实时数据',
+                        pcode: valpname,
+                        eid: valename
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data);
+                        const dataArray = data.content.data
+                        extractedData = dataArray.map(item => ({
+                            timer: (item.timer).slice(0, 19),
+                            [valname]: item[valname]
+                        }));
+                        console.log(extractedData);
+                        // DOM元素
+                            
+                            // 分页变量
+                        // 计算总页数
+                        // totalPages = Math.ceil(extractedData.length / rowsPerPage);
+                        // totalPagesSpan.textContent = totalPages;
+                        totalPages = Math.ceil(extractedData.length / rowsPerPage);
+                        if (extractedData.length === 0) {
+                            noDataMessage.style.display = 'block';
+                            dataContainer.style.display = 'none';
+                        } else {
+                            noDataMessage.style.display = 'none';
+                            dataContainer.style.display = 'block';
+                            renderTable(valname);
+                        }
+                        // $('#systemCombo2').combobox('loadData', value2);
+                    },
+                    error: function() {
+                        // $('#systemCombo2').combobox('setText', '数据加载失败');
+                    }
+                })
+                // submitDateRange(startDate, endDate);
+            });
+        // 分页设置1
+         // DOM元素
+        var tableBody = document.getElementById('tableBody');
+        var dynamicHeader = document.getElementById('dynamicHeader');
+        var firstPageBtn = document.getElementById('firstPage');
+        var prevPageBtn = document.getElementById('prevPage');
+        var nextPageBtn = document.getElementById('nextPage');
+        var lastPageBtn = document.getElementById('lastPage');
+        var pageNumbers = document.getElementById('pageNumbers');
+        // var goToPageInput = document.getElementById('goToPage');
+        var dataRangeInfo = document.getElementById('dataRangeInfo');
+        const noDataMessage = document.getElementById('noDataMessage');
+        const dataContainer = document.getElementById('dataContainer');
+        
+        // 渲染表格
+        function renderTable(selectedValue) {
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            /// 更新表头
+            dynamicHeader.textContent = selectedValue;
+            // 计算当前页的数据范围
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = Math.min(start + rowsPerPage, extractedData.length);
+            // 填充数据
+            // 填充当前页数据
+            for (let i = start; i < end; i++) {
+                const row = extractedData[i];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="border-bottom: 1px solid #ddd;
+            background-color: rgba(255, 255, 255, 0);
+            padding: 8px;
+            text-align: left;
+            padding-left: 2%;
+                    ">${row.timer}</td>
+                    <td style="border-bottom: 1px solid #ddd;
+            background-color: rgba(255, 255, 255, 0);
+            padding: 8px;
+            text-align: left;
+            padding-left: 2%;
+                    ">${row[selectedValue]}</td>
+                `;
+                tableBody.appendChild(tr);
+            }
+            
+            // 更新分页信息
+            updatePagination();
+        }
+        // 更新分页控件
+        function updatePagination() {
+            // 重新计算总页数
+            totalPages = Math.ceil(extractedData.length / rowsPerPage);
+            // 更新页码输入框
+            // goToPageInput.value = currentPage;
+            // goToPageInput.max = totalPages;
+            // 更新页码按钮状态
+            firstPageBtn.disabled = currentPage === 1;
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages;
+            lastPageBtn.disabled = currentPage === totalPages;
+            
+            // 更新页码显示
+            pageNumbers.innerHTML = '';
+            // 更新数据范围信息
+            const startItem = (currentPage - 1) * rowsPerPage + 1;
+            const endItem = Math.min(currentPage * rowsPerPage, extractedData.length);
+            dataRangeInfo.textContent = `显示第 ${startItem} 至 ${endItem} 条结果，共 ${extractedData.length} 条`;
+            // 总是显示第一页
+            addPageNumber(1);
+            
+            // 显示当前页附近的页码
+            const startPage = Math.max(2, currentPage - 2);
+            const endPage = Math.min(totalPages - 1, currentPage + 2);
+            // 确保当前页不超过总页数
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+            }
+            // 如果中间有间隔，显示省略号
+            if (startPage > 2) {
+                pageNumbers.innerHTML += '<span>...</span>';
+            }
+            
+            // 显示中间页码
+            for (let i = startPage; i <= endPage; i++) {
+                addPageNumber(i);
+            }
+            
+            // 如果末尾有间隔，显示省略号
+            if (endPage < totalPages - 1) {
+                pageNumbers.innerHTML += '<span>...</span>';
+            }
+            
+            // 总是显示最后一页（如果总页数大于1）
+            if (totalPages > 1) {
+                addPageNumber(totalPages);
+            }
+        }
+        // 添加页码按钮
+        function addPageNumber(page) {
+            const pageElement = document.createElement('span');
+            pageElement.className = 'page-number';
+            if (page === currentPage) {
+                pageElement.classList.add('active');
+            }
+            pageElement.textContent = page;
+            pageElement.addEventListener('click', () => {
+                currentPage = page;
+                renderTable(valname);
+            });
+            pageNumbers.appendChild(pageElement);
+        }
+
+        // 初始化表格（默认显示温度）
+
+        // 下拉框变化事件
+
+
+        // 分页按钮事件
+        firstPageBtn.addEventListener('click', () => {
+            currentPage = 1;
+            renderTable(valname);
+        });
+
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable(valname);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable(valname);
+            }
+        });
+
+        lastPageBtn.addEventListener('click', () => {
+            currentPage = totalPages;
+            renderTable(valname);
+        });
+
+        // 跳转到指定页
+
+        // 允许按Enter键跳转
+        //
+        function formatDate(date) {
+            var year = date.getFullYear();
+            var month = (date.getMonth() + 1).toString().padStart(2, '0');
+            var day = date.getDate().toString().padStart(2, '0');
+            var hours = date.getHours().toString().padStart(2, '0');
+            var minutes = date.getMinutes().toString().padStart(2, '0');
+            var seconds = date.getSeconds().toString().padStart(2, '0');
+            
+            return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+        }
+        // 计算两个日期的时间差
+        function calculateDuration(start, end) {
+            var startDate = new Date(start);
+            var endDate = new Date(end);
+            var diff = endDate - startDate;
+            
+            // 计算天数、小时、分钟、秒
+            var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            var result = [];
+            if (days > 0) result.push(days + '天');
+            if (hours > 0) result.push(hours + '小时');
+            if (minutes > 0) result.push(minutes + '分钟');
+            if (seconds > 0 || result.length === 0) result.push(seconds + '秒');
+            
+            return result.join(' ');
+        }
+    </script>
+</body>
+
+</html>
